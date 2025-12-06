@@ -3,32 +3,31 @@ name: Update API Data
 on:
   schedule:
     - cron: '0 */6 * * *'  # Setiap 6 jam
-  workflow_dispatch:  # Bisa di-trigger manual
+  workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write  # Tambahkan ini!
 
 jobs:
-  update-api:
+  update:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Important!
 
-      - name: Fetch latest API data
+      - name: Download API data
         run: |
           curl -s "https://topembed.pw/api.php?format=json" -o api.json
-          
-      - name: Check for changes
-        id: check-changes
-        run: |
-          git diff --quiet api.json || echo "changed=true" >> $GITHUB_OUTPUT
+          echo "Downloaded API data"
+          ls -la api.json
 
-      - name: Commit and push if changed
-        if: steps.check-changes.outputs.changed == 'true'
+      - name: Commit changes
         run: |
-          git config --global user.name 'GitHub Actions Bot'
-          git config --global user.email 'actions@github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add api.json
-          git commit -m "🔄 Auto-update API data $(date +'%Y-%m-%d %H:%M')"
+          git diff --quiet && echo "No changes" || git commit -m "🔄 Auto-update: $(date +'%Y-%m-%d %H:%M:%S')"
           git push
